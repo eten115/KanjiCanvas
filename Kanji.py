@@ -1,7 +1,6 @@
 import wx
 
 
-
 a = wx.App()
 f = wx.Frame(None, -1, 'Kanji Canvas')
 f.SetSize((500,500))
@@ -11,6 +10,14 @@ kanjiFont = wx.Font(30, wx.DEFAULT, wx.NORMAL, wx.NORMAL)
 
 dragWindow = None
 inputBox = None
+
+kanjiList = []
+
+def onCloseMainWindow(e):
+	f = open('Map', 'w') 
+	for k in kanjiList:
+		f.write("{} {} {}\n".format(k.GetLabelText().encode('utf-8'), k.GetPosition().x, k.GetPosition().y))
+	e.Skip()
 
 def onMouseDown(e):
 	global dragWindow, dragWindowStartPos, dragMouseStartPos
@@ -30,7 +37,6 @@ def onMouseMove(e):
 			dragWindow.Move(dragWindowStartPos - dragMouseStartPos + sPos)
 
 def onKey(e):
-	#print 'onKey', e.GetKeyCode()
 	global inputBox
 	if e.GetKeyCode() == wx.WXK_ESCAPE:
 		inputBox.Destroy()
@@ -58,21 +64,28 @@ def onDoubleClick(e):
 	inputBox.Bind(wx.EVT_CHAR, onKey)
 
 def putKanji(text, point):
-	global kanjiFont, p
+	global kanjiFont, p, kanjiList
 	t = wx.StaticText(p, label=text, pos=point)
 	t.SetBackgroundColour(('WHITE'))
 	t.SetFont(kanjiFont)
 	t.Bind(wx.EVT_LEFT_UP, onMouseUp)
 	t.Bind(wx.EVT_LEFT_DOWN, onMouseDown)
 	t.Bind(wx.EVT_MOTION, onMouseMove)
+	kanjiList.append(t)
 
 p.Bind(wx.EVT_LEFT_UP, onMouseUp)
 p.Bind(wx.EVT_MOTION, onMouseMove)
 p.Bind(wx.EVT_LEFT_DCLICK, onDoubleClick)
+f.Bind(wx.EVT_CLOSE, onCloseMainWindow)
 
 f.Show()
 
-putKanji(u'\u5590', (100, 50))
-putKanji(u'\u4f50', (50, 100))
+mapFile = open('Map', 'r')
+for line in mapFile:
+	words = line.split()
+	try:
+		putKanji(words[0].decode('utf-8'), wx.Point(int(words[1]), int(words[2])))
+	except:
+		continue
 
 a.MainLoop()
