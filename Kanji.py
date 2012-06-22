@@ -15,17 +15,19 @@ inputBox = None
 kanjiList = []
 dictList = []
 quizList = []
+mistakeList = []
 
 quizQuestionIndex = None
-correctAnswerCount = 0
 
 def isQuiz():
 	return (quizQuestionIndex != None)
 
 startQuizButton = wx.Button(p, label="Start Quiz", pos=(20,10))
 quizProgBar = wx.Gauge(p, size=(200, 20), pos=(120, 10))
-quizText = wx.StaticText(p, label="Push button to begin quiz", pos=(20, 50), size=(200,20))
+quizText = wx.StaticText(p, label="Push button to begin quiz", pos=(20, 50), size=(200,15))
 quizText.SetFont(quizFont)
+quizText.SetBackgroundColour(('WHITE'))
+fixMistakesButton = wx.Button(p, label="Fix Mistakes", pos=(20, 90))
 
 lastHigh = None
 
@@ -49,17 +51,24 @@ def popQuestion():
 def startQuiz():
 	global quizQuestionIndex, quizList
 	if len(dictList) > 0:
-		quizList = copy.copy(dictList)
 		random.shuffle(quizList)
 		quizProgBar.SetRange(len(quizList))
 		quizProgBar.SetValue(0)
 		quizQuestionIndex = 0
-		correctAnswerCount = 0
 		popQuestion()
 
-def onQuizButton(e):
+def onFixMistakesButton(e):
+	global quizList, mistakeList
+	quizList = mistakeList
+	mistakeList = []
 	startQuiz()
-	
+
+def onQuizButton(e):
+	global quizList, mistakeList
+	quizList = copy.copy(dictList)
+	mistakeList = []
+	startQuiz()
+
 def advanceToNextQuestion():
 	global quizQuestionIndex
 	quizProgBar.SetValue(quizQuestionIndex+1)
@@ -68,7 +77,7 @@ def advanceToNextQuestion():
 		popQuestion()
 	else:
 		quizQuestionIndex = None
-		quizText.SetLabel('Correct {} of {}'.format(correctAnswerCount, len(quizList)))
+		quizText.SetLabel('Mistakes {} of {}'.format(len(mistakeList), len(quizList)))
 
 def onCloseMainWindow(e):
 	f = open('Map', 'w') 
@@ -86,15 +95,14 @@ def onPanelMouseDown(e):
 
 def onKanjiMouseDown(e):
 	if isQuiz():
-		global correctAnswerCount
 		k = e.GetEventObject()
-		correctAnswer = quizList[quizQuestionIndex]['kanji']
-		if k.GetLabel() == correctAnswer:
-			correctAnswerCount += 1
+		question = quizList[quizQuestionIndex]
+		if k.GetLabel() == question['kanji']:
 			setHigh(k)
 		else:
+			mistakeList.append(question)
 			for w in kanjiList:
-				if w.GetLabel() == correctAnswer:
+				if w.GetLabel() == question['kanji']:
 					setHigh(w)
 		advanceToNextQuestion()
 	else:
@@ -155,6 +163,7 @@ p.Bind(wx.EVT_LEFT_DCLICK, onDoubleClick)
 p.Bind(wx.EVT_LEFT_DOWN, onPanelMouseDown)
 f.Bind(wx.EVT_CLOSE, onCloseMainWindow)
 startQuizButton.Bind(wx.EVT_BUTTON, onQuizButton)
+fixMistakesButton.Bind(wx.EVT_BUTTON, onFixMistakesButton)
 
 f.Show()
 
@@ -171,7 +180,7 @@ dictFile = open('Dict.txt', 'r')
 for line in dictFile:
 	try:
 		words = line.split('\t')
-		entry = {'kanji': words[0].decode('utf-8'), 'meaning': words[1].decode('utf-8')}
+		entry = {'kanji': words[0].decode('utf-8'), 'meaning': words[1].rstrip().decode('utf-8')}
 		dictList.append(entry)
 	except:
 		continue
