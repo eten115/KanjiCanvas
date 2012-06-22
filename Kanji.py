@@ -1,5 +1,4 @@
-import wx, sys
-
+import wx, sys, random, copy
 
 a = wx.App(redirect=True, filename='error.txt')
 f = wx.Frame(None, -1, 'Kanji Canvas')
@@ -15,6 +14,7 @@ inputBox = None
 
 kanjiList = []
 dictList = []
+quizList = []
 
 quizQuestionIndex = None
 correctAnswerCount = 0
@@ -42,20 +42,16 @@ def setHigh(w):
 			w.Show(True)
 		lastHigh = w
 
-def findKanjiInDict(kanji):
-	for entry in dictList:
-		if entry['kanji'] == kanji:
-			return entry
-	return None
-
 def popQuestion():
-	q = dictList[quizQuestionIndex]
+	q = quizList[quizQuestionIndex]
 	quizText.SetLabel(q['meaning'])
 
 def startQuiz():
-	global quizQuestionIndex
+	global quizQuestionIndex, quizList
 	if len(dictList) > 0:
-		quizProgBar.SetRange(len(dictList))
+		quizList = copy.copy(dictList)
+		random.shuffle(quizList)
+		quizProgBar.SetRange(len(quizList))
 		quizProgBar.SetValue(0)
 		quizQuestionIndex = 0
 		correctAnswerCount = 0
@@ -67,12 +63,12 @@ def onQuizButton(e):
 def advanceToNextQuestion():
 	global quizQuestionIndex
 	quizProgBar.SetValue(quizQuestionIndex+1)
-	if quizQuestionIndex < len(dictList)-1:
+	if quizQuestionIndex < len(quizList)-1:
 		quizQuestionIndex += 1
 		popQuestion()
 	else:
 		quizQuestionIndex = None
-		quizText.SetLabel('Correct {} of {}'.format(correctAnswerCount, len(dictList)))
+		quizText.SetLabel('Correct {} of {}'.format(correctAnswerCount, len(quizList)))
 
 def onCloseMainWindow(e):
 	f = open('Map', 'w') 
@@ -82,7 +78,7 @@ def onCloseMainWindow(e):
 	
 def onPanelMouseDown(e):
 	if isQuiz():
-		correctAnswer = dictList[quizQuestionIndex]['kanji']
+		correctAnswer = quizList[quizQuestionIndex]['kanji']
 		for w in kanjiList:
 			if w.GetLabel() == correctAnswer:
 				setHigh(w)
@@ -92,7 +88,7 @@ def onKanjiMouseDown(e):
 	if isQuiz():
 		global correctAnswerCount
 		k = e.GetEventObject()
-		correctAnswer = dictList[quizQuestionIndex]['kanji']
+		correctAnswer = quizList[quizQuestionIndex]['kanji']
 		if k.GetLabel() == correctAnswer:
 			correctAnswerCount += 1
 			setHigh(k)
@@ -133,7 +129,7 @@ def onInputBoxKey(e):
 	e.Skip()
 
 def onDoubleClick(e):
-	if not inQuiz():
+	if not isQuiz():
 		global inputBox, kanjiFont
 		if inputBox:
 			inputBox.Destroy()
