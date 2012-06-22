@@ -29,7 +29,24 @@ quizText.SetFont(quizFont)
 quizText.SetBackgroundColour(('WHITE'))
 fixMistakesButton = wx.Button(p, label="Fix Mistakes", pos=(20, 90))
 
+pickModeButton = wx.ToggleButton(p, label="Pick", pos=(350, 10))
+dragModeButton = wx.ToggleButton(p, label="Drag", pos=(450,10))
+dragModeButton.SetValue(True)
+
 lastHigh = None
+
+def isDrag():
+	return dragModeButton.GetValue()
+	
+def isPick():
+	return pickModeButton.GetValue()
+
+def onModeToggleButton(e):
+	global pickModeButton, dragModeButton
+	if e.GetEventObject() is pickModeButton:
+		dragModeButton.SetValue(False)
+	if e.GetEventObject() is dragModeButton:
+		pickModeButton.SetValue(False)
 
 def setHigh(w):
 	global lastHigh
@@ -51,6 +68,8 @@ def popQuestion():
 def startQuiz():
 	global quizQuestionIndex, quizList
 	if len(dictList) > 0:
+		pickModeButton.SetValue(True)
+		dragModeButton.SetValue(False)
 		random.shuffle(quizList)
 		quizProgBar.SetRange(len(quizList))
 		quizProgBar.SetValue(0)
@@ -87,13 +106,20 @@ def onCloseMainWindow(e):
 	
 def onPanelMouseDown(e):
 	if isQuiz():
-		correctAnswer = quizList[quizQuestionIndex]['kanji']
-		for w in kanjiList:
-			if w.GetLabel() == correctAnswer:
-				setHigh(w)
-		advanceToNextQuestion()
+		if isPick():
+			correctAnswer = quizList[quizQuestionIndex]['kanji']
+			for w in kanjiList:
+				if w.GetLabel() == correctAnswer:
+					setHigh(w)
+			advanceToNextQuestion()
 
 def onKanjiMouseDown(e):
+	if isDrag():
+		global dragWindow, dragWindowStartPos, dragMouseStartPos
+		dragWindow = e.GetEventObject()
+		dragWindowStartPos = dragWindow.GetPosition()
+		dragMouseStartPos = e.GetEventObject().ClientToScreen(e.GetPosition())
+		return
 	if isQuiz():
 		k = e.GetEventObject()
 		question = quizList[quizQuestionIndex]
@@ -105,22 +131,19 @@ def onKanjiMouseDown(e):
 				if w.GetLabel() == question['kanji']:
 					setHigh(w)
 		advanceToNextQuestion()
-	else:
-		global dragWindow, dragWindowStartPos, dragMouseStartPos
-		dragWindow = e.GetEventObject()
-		dragWindowStartPos = dragWindow.GetPosition()
-		dragMouseStartPos = e.GetEventObject().ClientToScreen(e.GetPosition())
-		
+
 def onMouseUp(e):
-	global dragWindow
-	dragWindow = None
+	if isDrag():
+		global dragWindow
+		dragWindow = None
 
 def onMouseMove(e):
-	global dragWindow, dragWindowStartPos, dragMouseStartPos
-	if dragWindow:
-		sPos = e.GetEventObject().ClientToScreen(e.GetPosition())
-		if e.LeftIsDown():
-			dragWindow.Move(dragWindowStartPos - dragMouseStartPos + sPos)
+	if isDrag():
+		global dragWindow, dragWindowStartPos, dragMouseStartPos
+		if dragWindow:
+			sPos = e.GetEventObject().ClientToScreen(e.GetPosition())
+			if e.LeftIsDown():
+				dragWindow.Move(dragWindowStartPos - dragMouseStartPos + sPos)
 
 def onInputBoxKey(e):
 	global inputBox
@@ -164,6 +187,8 @@ p.Bind(wx.EVT_LEFT_DOWN, onPanelMouseDown)
 f.Bind(wx.EVT_CLOSE, onCloseMainWindow)
 startQuizButton.Bind(wx.EVT_BUTTON, onQuizButton)
 fixMistakesButton.Bind(wx.EVT_BUTTON, onFixMistakesButton)
+dragModeButton.Bind(wx.EVT_TOGGLEBUTTON, onModeToggleButton)
+pickModeButton.Bind(wx.EVT_TOGGLEBUTTON, onModeToggleButton)
 
 f.Show()
 
