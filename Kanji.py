@@ -74,6 +74,7 @@ def startQuiz():
 		quizProgBar.SetRange(len(quizList))
 		quizProgBar.SetValue(0)
 		quizQuestionIndex = 0
+		setHigh(None)
 		popQuestion()
 
 def onFixMistakesButton(e):
@@ -107,7 +108,9 @@ def onCloseMainWindow(e):
 def onPanelMouseDown(e):
 	if isQuiz():
 		if isPick():
-			correctAnswer = quizList[quizQuestionIndex]['kanji']
+			question = quizList[quizQuestionIndex]
+			correctAnswer = question['kanji']
+			mistakeList.append(question)
 			for w in kanjiList:
 				if w.GetLabel() == correctAnswer:
 					setHigh(w)
@@ -123,12 +126,13 @@ def onKanjiMouseDown(e):
 	if isQuiz():
 		k = e.GetEventObject()
 		question = quizList[quizQuestionIndex]
-		if k.GetLabel() == question['kanji']:
+		correctAnswer = question['kanji']
+		if k.GetLabel() == correctAnswer:
 			setHigh(k)
 		else:
 			mistakeList.append(question)
 			for w in kanjiList:
-				if w.GetLabel() == question['kanji']:
+				if w.GetLabel() == correctAnswer:
 					setHigh(w)
 		advanceToNextQuestion()
 
